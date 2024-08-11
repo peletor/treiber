@@ -1,11 +1,16 @@
 package stack
 
+import (
+	"sync/atomic"
+	"unsafe"
+)
+
 type stackItem struct {
 	value int
-	next  *stackItem
+	next  unsafe.Pointer
 }
 type Stack struct {
-	head *stackItem
+	head unsafe.Pointer
 }
 
 func NewStack() Stack {
@@ -13,26 +18,42 @@ func NewStack() Stack {
 }
 
 func (s *Stack) Push(value int) {
-	s.head = &stackItem{
-		value: value,
-		next:  s.head,
+	newNode := &stackItem{value: value}
+
+	for {
+		head := atomic.LoadPointer(&s.head)
+		newNode.next = head
+
+		if atomic.CompareAndSwapPointer(&s.head, head, unsafe.Pointer(newNode)) {
+			return
+		}
 	}
 }
 
 func (s *Stack) Pop() (value int, Ok bool) {
-	if s.head == nil {
-		return 0, false
+	for {
+		head := atomic.LoadPointer(&s.head)
+		if head == nil {
+			return 0, false
+		}
+
+		next := atomic.LoadPointer(&(*stackItem)(head).next)
+		if atomic.CompareAndSwapPointer(&s.head, head, next) {
+			return (*stackItem)(head).value, true
+		}
 	}
-
-	value = s.head.value
-	s.head = s.head.next
-
-	return value, true
 }
 
 func (s *Stack) Top() (value int, Ok bool) {
-	if s.head == nil {
-		return 0, false
+	for {
+		head := atomic.LoadPointer(&s.head)
+		if head == nil {
+			return 0, false
+		}
+
+		// Try to swap head with itself
+		if atomic.CompareAndSwapPointer(&s.head, head, head) {
+			return (*stackItem)(head).value, true
+		}
 	}
-	return s.head.value, true
 }
