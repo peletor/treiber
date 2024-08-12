@@ -3,7 +3,7 @@ Go's concurrent and scalable lock-free data structures are based on the concept 
 
 This package contains data structures:
 - Stack - [Treiber stack](https://en.wikipedia.org/wiki/Treiber_stack)
-- Queue - [Michael-Scott](Queue https://www.cs.rochester.edu/~scott/papers/1996_PODC_queues.pdf)
+- Queue - [Michael-Scott Queue](https://www.cs.rochester.edu/~scott/papers/1996_PODC_queues.pdf)
 
 ## Stack
 implements methods:
