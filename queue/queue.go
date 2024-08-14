@@ -24,7 +24,7 @@ func NewQueue() Queue {
 }
 
 func (q *Queue) Push(value int) {
-	newItem := &queueItem{value: value}
+	newItem := unsafe.Pointer(&queueItem{value: value})
 
 	for {
 		tail := atomic.LoadPointer(&q.tail)
@@ -33,15 +33,14 @@ func (q *Queue) Push(value int) {
 		// if queue tail is not changed in other goroutine
 		if tail == atomic.LoadPointer(&q.tail) {
 			if next == nil {
-				if atomic.CompareAndSwapPointer(&(*queueItem)(tail).next, next, unsafe.Pointer(newItem)) {
+				if atomic.CompareAndSwapPointer(&(*queueItem)(tail).next, next, newItem) {
 					// try to move queue tail
-					atomic.CompareAndSwapPointer(&q.tail, tail, unsafe.Pointer(newItem))
+					atomic.CompareAndSwapPointer(&q.tail, tail, newItem)
 					return
-				} else {
-					// try to fix queue tail
-					atomic.CompareAndSwapPointer(&q.tail, tail, unsafe.Pointer(newItem))
 				}
-
+			} else {
+				// try to fix queue tail
+				atomic.CompareAndSwapPointer(&q.tail, tail, next)
 			}
 		}
 	}
