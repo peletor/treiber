@@ -181,8 +181,6 @@ func TestDequeConcurrencyPushBackPopBack(t *testing.T) {
 			cnt++
 		}
 
-		t.Log("Counter1", deq.counter1, "Counter2", deq.counter2)
-
 		assert.Equal(t, cnt, count)
 	})
 
@@ -204,8 +202,7 @@ func TestDequeConcurrencyPushBackPopBack(t *testing.T) {
 		}
 		wg.Wait()
 
-		val, ok := deq.PopBack()
-		t.Log("Last val:", val, ok, "Counter1", deq.counter1, "Counter2", deq.counter2)
+		_, ok := deq.PopBack()
 		assert.False(t, ok) // Queue must be empty
 	})
 }
@@ -443,5 +440,149 @@ func TestPushBackPopFront(t *testing.T) {
 		val, ok := deq.PopFront()
 		assert.False(t, ok)
 		assert.Zero(t, val)
+	})
+}
+
+func TestDequeConcurrencyPushFrontPopFront(t *testing.T) {
+	const count = 1_000_000
+
+	t.Run("PushFront", func(t *testing.T) {
+		deq := NewDeque()
+
+		wg := sync.WaitGroup{}
+		wg.Add(count)
+
+		for i := 0; i < count; i++ {
+			go func(value int) {
+				defer wg.Done()
+				deq.PushFront(value)
+			}(i)
+		}
+		wg.Wait()
+
+		cnt := 0
+		for _, ok := deq.PopFront(); ok; _, ok = deq.PopFront() {
+			cnt++
+		}
+
+		assert.Equal(t, cnt, count)
+	})
+
+	t.Run("PopFront", func(t *testing.T) {
+		deq := NewDeque()
+
+		for i := 0; i < count; i++ {
+			deq.PushFront(i)
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(count)
+
+		for i := 0; i < count; i++ {
+			go func() {
+				defer wg.Done()
+				deq.PopFront()
+			}()
+		}
+		wg.Wait()
+
+		_, ok := deq.PopFront()
+		assert.False(t, ok) // Queue must be empty
+	})
+}
+
+func TestDequeConcurrencyPushFrontPopBack(t *testing.T) {
+	const count = 1_000_000
+
+	t.Run("PushFront", func(t *testing.T) {
+		deq := NewDeque()
+
+		wg := sync.WaitGroup{}
+		wg.Add(count)
+
+		for i := 0; i < count; i++ {
+			go func(value int) {
+				defer wg.Done()
+				deq.PushFront(value)
+			}(i)
+		}
+		wg.Wait()
+
+		cnt := 0
+		for _, ok := deq.PopBack(); ok; _, ok = deq.PopBack() {
+			cnt++
+		}
+
+		assert.Equal(t, cnt, count)
+	})
+
+	t.Run("PopBack", func(t *testing.T) {
+		deq := NewDeque()
+
+		for i := 0; i < count; i++ {
+			deq.PushFront(i)
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(count)
+
+		for i := 0; i < count; i++ {
+			go func() {
+				defer wg.Done()
+				deq.PopBack()
+			}()
+		}
+		wg.Wait()
+
+		_, ok := deq.PopBack()
+		assert.False(t, ok) // Queue must be empty
+	})
+}
+
+func TestDequeConcurrencyPushBackPopFront(t *testing.T) {
+	const count = 1_000_000
+
+	t.Run("PushBack", func(t *testing.T) {
+		deq := NewDeque()
+
+		wg := sync.WaitGroup{}
+		wg.Add(count)
+
+		for i := 0; i < count; i++ {
+			go func(value int) {
+				defer wg.Done()
+				deq.PushBack(value)
+			}(i)
+		}
+		wg.Wait()
+
+		cnt := 0
+		for _, ok := deq.PopFront(); ok; _, ok = deq.PopFront() {
+			cnt++
+		}
+
+		assert.Equal(t, cnt, count)
+	})
+
+	t.Run("PopFront", func(t *testing.T) {
+		deq := NewDeque()
+
+		for i := 0; i < count; i++ {
+			deq.PushBack(i)
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(count)
+
+		for i := 0; i < count; i++ {
+			go func() {
+				defer wg.Done()
+				deq.PopFront()
+			}()
+		}
+		wg.Wait()
+
+		_, ok := deq.PopFront()
+		assert.False(t, ok) // Queue must be empty
 	})
 }

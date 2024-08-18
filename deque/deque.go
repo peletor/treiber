@@ -12,10 +12,8 @@ type dequeItem struct {
 }
 
 type Deque struct {
-	front    unsafe.Pointer
-	back     unsafe.Pointer
-	counter1 int32
-	counter2 int32
+	front unsafe.Pointer
+	back  unsafe.Pointer
 }
 
 func NewDeque() Deque {
@@ -43,8 +41,6 @@ func (d *Deque) PushBack(value int) {
 				} else {
 					// try to fix d.back
 					atomic.CompareAndSwapPointer(&d.back, back, next)
-
-					atomic.AddInt32(&d.counter1, 1)
 				}
 			}
 		} else {
@@ -84,7 +80,6 @@ func (d *Deque) PopBack() (value int, ok bool) {
 					// Try to move deque front
 					atomic.CompareAndSwapPointer(&d.front, front, nil)
 
-					atomic.AddInt32(&d.counter2, 1)
 					return (*dequeItem)(back).value, true
 				}
 			} else {
@@ -96,9 +91,6 @@ func (d *Deque) PopBack() (value int, ok bool) {
 						// try to move d.back
 						atomic.CompareAndSwapPointer(&d.back, back, prev)
 						return (*dequeItem)(back).value, true
-					} else {
-						// debug!
-						atomic.AddInt32(&d.counter2, 1)
 					}
 				}
 			}
