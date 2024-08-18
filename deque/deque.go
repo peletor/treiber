@@ -12,8 +12,10 @@ type dequeItem struct {
 }
 
 type Deque struct {
-	front unsafe.Pointer
-	back  unsafe.Pointer
+	front    unsafe.Pointer
+	back     unsafe.Pointer
+	counter1 int32
+	counter2 int32
 }
 
 func NewDeque() Deque {
@@ -41,6 +43,8 @@ func (d *Deque) PushBack(value int) {
 				} else {
 					// try to fix d.back
 					atomic.CompareAndSwapPointer(&d.back, back, next)
+
+					atomic.AddInt32(&d.counter1, 1)
 				}
 			}
 		} else {
@@ -64,33 +68,39 @@ func (d *Deque) PushBack(value int) {
 func (d *Deque) PopBack() (value int, ok bool) {
 	for {
 		back := atomic.LoadPointer(&d.back)
+		//front := atomic.LoadPointer(&d.front)
 		if back == nil {
 			// Deque is empty
 			return 0, false
 		}
+
+		// Deque is not empty. dequeItem = *q.back exist
 		prev := atomic.LoadPointer(&(*dequeItem)(back).prev)
 
 		if back == atomic.LoadPointer(&d.back) {
 			// if deque has only one dequeItem
 			if prev == nil {
-				if atomic.CompareAndSwapPointer(&d.back, back, prev) {
+				if atomic.CompareAndSwapPointer(&d.back, back, nil) {
 					// Try to move deque front
-					atomic.CompareAndSwapPointer(&d.front, back, nil)
+					//atomic.CompareAndSwapPointer(&d.front, front, nil)
+
+					atomic.AddInt32(&d.counter2, 1)
 					return (*dequeItem)(back).value, true
 				}
 			} else {
 				// now prevItem.next == q.back
 				prevItemNext := atomic.LoadPointer(&(*dequeItem)(prev).next)
 				// try to make prevItem = last item (prevItem.next = nil)
-				if atomic.CompareAndSwapPointer(&(*dequeItem)(prev).next, prevItemNext, nil) {
-					// try to move d.back
-					atomic.CompareAndSwapPointer(&d.back, back, prev)
-					return (*dequeItem)(back).value, true
-				} else {
-					// try to fix d.back
-					atomic.CompareAndSwapPointer(&d.back, back, prev)
+				if prevItemNext != nil {
+					if atomic.CompareAndSwapPointer(&(*dequeItem)(prev).next, prevItemNext, nil) {
+						// try to move d.back
+						atomic.CompareAndSwapPointer(&d.back, back, prev)
+						return (*dequeItem)(back).value, true
+					} else {
+						// debug!
+						atomic.AddInt32(&d.counter2, 1)
+					}
 				}
-
 			}
 		}
 	}

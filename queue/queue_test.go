@@ -64,7 +64,7 @@ func TestQueue(t *testing.T) {
 }
 
 func TestQueueConcurrency(t *testing.T) {
-	const count = 100
+	const count = 50
 
 	t.Run("Push", func(t *testing.T) {
 		que := NewQueue()

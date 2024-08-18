@@ -2,6 +2,7 @@ package deque
 
 import (
 	"github.com/stretchr/testify/assert"
+	"sync"
 	"testing"
 )
 
@@ -110,7 +111,7 @@ func TestPopBack(t *testing.T) {
 }
 
 func TestPushBackPopBack(t *testing.T) {
-	const count = 100
+	const count = 10_000
 
 	t.Run("PushBackPopBack several times", func(t *testing.T) {
 		deq := NewDeque()
@@ -156,5 +157,56 @@ func TestPushBackPopBack(t *testing.T) {
 		val, ok := deq.PopBack()
 		assert.False(t, ok)
 		assert.Zero(t, val)
+	})
+}
+
+func TestDequeConcurrencyPushBackPopBack(t *testing.T) {
+	const count = 1_000_000
+
+	t.Run("PushBack", func(t *testing.T) {
+		deq := NewDeque()
+
+		wg := sync.WaitGroup{}
+		wg.Add(count)
+
+		for i := 0; i < count; i++ {
+			go func(value int) {
+				defer wg.Done()
+				deq.PushBack(value)
+			}(i)
+		}
+		wg.Wait()
+
+		cnt := 0
+		for _, ok := deq.PopBack(); ok; _, ok = deq.PopBack() {
+			cnt++
+		}
+
+		t.Log("Counter1", deq.counter1, "Counter2", deq.counter2)
+
+		assert.Equal(t, cnt, count)
+	})
+
+	t.Run("PopBack", func(t *testing.T) {
+		deq := NewDeque()
+
+		for i := 0; i < count; i++ {
+			deq.PushBack(i)
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(count)
+
+		for i := 0; i < count; i++ {
+			go func() {
+				defer wg.Done()
+				deq.PopBack()
+			}()
+		}
+		wg.Wait()
+
+		val, ok := deq.PopBack()
+		t.Log("Last val:", val, ok, "Counter1", deq.counter1, "Counter2", deq.counter2)
+		assert.False(t, ok) // Queue must be empty
 	})
 }
